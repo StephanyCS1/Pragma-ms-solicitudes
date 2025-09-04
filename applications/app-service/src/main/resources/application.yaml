@@ -1,0 +1,58 @@
+server:
+  port: 9002
+spring:
+  application:
+    name: "ms-solicitudes"
+  devtools:
+    add-properties: false
+  profiles:
+    include: null
+adapters:
+  r2dbc:
+    host: localhost
+    port: 5432
+    database: solicitudes
+    schema: public
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  sql:
+    init:
+      mode: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+  show-actuator: false
+  use-management-port: false
+group-configs:
+  - group: 'solicitudes'
+    display-name: 'API de Solicitudes'
+    paths-to-match: '/api/v1/solicitudes/**'
+logging:
+  level:
+    co.com.crediya: DEBUG
+    org.springframework.web.reactive.function.server: DEBUG
+    org.springframework.http.codec: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.r2dbc.core: DEBUG
+    org.springframework: INFO
+    reactor.netty.http.client: INFO

@@ -4,15 +4,15 @@ import co.com.crediya.api.dto.NewRequest;
 import co.com.crediya.api.dto.RequestDto;
 import co.com.crediya.api.mapper.RequestMapper;
 import co.com.crediya.model.solicitud.Request;
-import co.com.crediya.model.solicitud.enums.StatusName;
 import co.com.crediya.model.solicitud.exceptions.UserNotFoundException;
 import co.com.crediya.model.solicitud.gateways.UserValidationService;
 import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import co.com.crediya.model.solicitud.valueobjects.PagedResponse;
 import co.com.crediya.model.solicitud.valueobjects.SortSpec;
-import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
-import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
+import co.com.crediya.usecases.request.createrequest.CreateRequestUseCase;
+import co.com.crediya.usecases.request.getallrequests.ListPendingRequestsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -234,11 +234,36 @@ public class RequestController {
                 .map(created -> ResponseEntity.ok(new GeneralResponse<>(200, created, null)));
     }
 
-    @GetMapping
+
+    @GetMapping("/requests/pending")
     @PreAuthorize("hasAnyRole('ASESOR')")
+    @Operation(
+            summary = "Listar solicitudes pendientes",
+            description = "Devuelve una lista paginada de solicitudes con estado pendiente.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Lista de solicitudes pendientes",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = GeneralResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "Acceso denegado",
+                            content = @Content
+                    )
+            }
+    )
     public Mono<ResponseEntity<GeneralResponse<PagedResponse<Request>>>> listPending(
+            @Parameter(description = "Número de página (inicia en 0)", example = "0")
             @RequestParam(name = "page", defaultValue = "0") int page,
+
+            @Parameter(description = "Cantidad de registros por página", example = "20")
             @RequestParam(name = "size", defaultValue = "20") int size,
+
+            @Parameter(description = "Dirección de ordenamiento (ASC o DESC)", example = "DESC")
             @RequestParam(name = "direction", defaultValue = "DESC") String direction
     ) {
         var sort = new SortSpec("status_id",

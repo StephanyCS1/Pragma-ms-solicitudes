@@ -4,11 +4,11 @@ import co.com.crediya.model.solicitud.gateways.LoanTypeRepository;
 import co.com.crediya.model.solicitud.gateways.RequestRepository;
 import co.com.crediya.model.solicitud.gateways.StatusRepository;
 import co.com.crediya.model.solicitud.gateways.UserValidationService;
-import co.com.crediya.usecase.loanType.GetLoanTypeQueryUseCase;
-import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
-import co.com.crediya.usecase.request.getallrequests.GetRequestQueryUseCase;
-import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
-import co.com.crediya.usecase.status.GetAllStatusesQueryUseCase;
+import co.com.crediya.usecases.loantype.GetLoanTypeQueryUseCase;
+import co.com.crediya.usecases.request.createrequest.CreateRequestUseCase;
+import co.com.crediya.usecases.request.getallrequests.GetRequestQueryUseCase;
+import co.com.crediya.usecases.request.getallrequests.ListPendingRequestsUseCase;
+import co.com.crediya.usecases.status.GetAllStatusesQueryUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

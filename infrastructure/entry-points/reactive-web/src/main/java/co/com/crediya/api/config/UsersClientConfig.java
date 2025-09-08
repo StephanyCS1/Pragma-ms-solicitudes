@@ -1,6 +1,5 @@
 package co.com.crediya.api.config;
 
-import io.netty.channel.ChannelOption;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

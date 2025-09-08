@@ -42,8 +42,7 @@ public class GlobalExceptionHandler implements WebExceptionHandler {
         GeneralResponse<Object> errorResponse;
         HttpStatus status;
 
-        if (ex instanceof DomainValidationException) {
-            DomainValidationException domainEx = (DomainValidationException) ex;
+        if (ex instanceof DomainValidationException domainEx) {
             status = HttpStatus.BAD_REQUEST;
             errorResponse = new GeneralResponse<>(
                     status.value(),
@@ -66,8 +65,7 @@ public class GlobalExceptionHandler implements WebExceptionHandler {
             );
             log.warn("Error de decodificación JSON: {}", ex.getMessage());
 
-        } else if (ex instanceof ServerWebInputException) {
-            ServerWebInputException inputEx = (ServerWebInputException) ex;
+        } else if (ex instanceof ServerWebInputException inputEx) {
             status = HttpStatus.BAD_REQUEST;
             errorResponse = new GeneralResponse<>(
                     status.value(),

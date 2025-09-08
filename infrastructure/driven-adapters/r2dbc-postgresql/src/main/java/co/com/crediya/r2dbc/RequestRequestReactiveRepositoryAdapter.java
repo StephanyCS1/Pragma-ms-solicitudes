@@ -2,11 +2,14 @@ package co.com.crediya.r2dbc;
 
 import co.com.crediya.model.solicitud.Request;
 import co.com.crediya.model.solicitud.enums.StatusName;
+import co.com.crediya.model.solicitud.exceptions.RequestNotFoundException;
 import co.com.crediya.model.solicitud.gateways.RequestRepository;
 import co.com.crediya.model.solicitud.valueobjects.*;
 import co.com.crediya.r2dbc.entity.RequestEntity;
 import co.com.crediya.r2dbc.helper.RequestReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,25 +74,24 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
     }
 
     @Override
-    @Transactional()
+    @Transactional
     public Mono<Void> deleteRequest(UUID id, String email) {
         return repository.findById(id)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("La solicitud "+ id+ " no existe")))
-                .flatMap(exist -> {
-                    return repository.deleteById(id);
-                });
+                .switchIfEmpty(Mono.error(new RequestNotFoundException("La solicitud " + id + " no existe")))
+                .then(repository.deleteById(id));
     }
 
     @Override
-    public Mono<PagedResponse<Request>> listPending(int page, int size, SortSpec sort) {
+    public Mono<PagedResponse<Request>> listPending(int page, int size, SortSpec sortSpec) {
         UUID pendingId = StatusName.PENDING_TO_CHECK.getId();
-        long limit = size;
-        long offset = (long) page * size;
 
-        Sort springSort = toSpringSort(sort);
+        Sort springSort = toSpringSort(sortSpec == null
+                ? new SortSpec("requestDate", SortSpec.Direction.DESC)
+                : sortSpec);
 
-        Mono<List<Request>> content = repository
-                .findPageByStatusId(pendingId, limit, offset, springSort)
+        Pageable pb = PageRequest.of(page, size, springSort);
+
+        Mono<List<Request>> content = repository.findByStatusId(pendingId, pb)
                 .map(this::toDomain)
                 .collectList();
 
@@ -101,8 +103,17 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
 
     @Override
     public Flux<Request> findPageByStatusId(UUID statusId, long limit, long offset, SortSpec sort) {
+        if (limit <= 0) {
+            return Flux.error(new IllegalArgumentException("limit must be > 0"));
+        }
+
+        int size = Math.toIntExact(limit);
+        int page = (int) (offset / limit);
+
         Sort springSort = toSpringSort(sort);
-        return repository.findPageByStatusId(statusId, limit, offset, springSort)
+        Pageable pb = PageRequest.of(page, size, springSort);
+
+        return repository.findByStatusId(statusId, pb)
                 .map(this::toDomain);
     }
 
@@ -110,6 +121,7 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
     public Mono<Long> countByStatusId(UUID statusId) {
         return repository.countByStatusId(statusId);
     }
+
 
     private Sort toSpringSort(SortSpec sortSpec) {
         if (sortSpec == null || sortSpec.property() == null || sortSpec.property().isBlank()) {

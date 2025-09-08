@@ -5,22 +5,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record NewRequest(
-        @NotBlank(message = "El documento es requerido")
-        @Size(min = 5, max = 15, message = "El documento debe tener entre 5 y 15 caracteres")
-        String documentNumber,
-
-        @NotBlank(message = "El nombre es requerido")
-        @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
-        String firstName,
-
-        @NotBlank(message = "El apellido es requerido")
-        @Size(min = 2, max = 50, message = "El apellido debe tener entre 2 y 50 caracteres")
-        String lastName,
-
-        @NotBlank(message = "El email es requerido")
-        @Email(message = "Formato de email inválido")
-        String email,
+public record RequestDto(
 
         @NotBlank(message = "El teléfono es requerido")
         String phoneNumber,
@@ -39,10 +24,6 @@ public record NewRequest(
 
         @NotNull(message = "Los ingresos mensuales son requeridos")
         @Positive(message = "Los ingresos deben ser mayores a 0")
-        BigDecimal monthlyIncome,
-
-        @NotNull(message = "El id del usuario es requeridos")
-        UUID userId
-
+        BigDecimal monthlyIncome
 
 ) {}

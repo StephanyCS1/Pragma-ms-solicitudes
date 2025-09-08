@@ -1,12 +1,12 @@
 package co.com.crediya.exceptions;
 
-import co.com.crediya.api.dto.GeneralResponse;
-import co.com.crediya.model.user.exceptions.DomainValidationException;
-import co.com.crediya.model.user.exceptions.UserNotFoundException;
+import co.com.crediya.model.solicitud.exceptions.DomainValidationException;
+import co.com.crediya.model.solicitud.exceptions.RequestNotFoundException;
+import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import lombok.extern.slf4j.Slf4j;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -85,14 +85,14 @@ public class GlobalExceptionHandler implements WebExceptionHandler {
             );
             log.warn("UUID inválido: {}", ex.getMessage());
 
-        }else if (ex instanceof UserNotFoundException) {
+        }else if (ex instanceof RequestNotFoundException) {
             status = HttpStatus.NOT_FOUND;
             errorResponse = new GeneralResponse<>(
                     status.value(),
                     null,
                     ex.getMessage()
             );
-            log.warn("Usuario no encontrado: {}", ex.getMessage());
+            log.warn("Solicitud no encontrado: {}", ex.getMessage());
         } else {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             errorResponse = new GeneralResponse<>(

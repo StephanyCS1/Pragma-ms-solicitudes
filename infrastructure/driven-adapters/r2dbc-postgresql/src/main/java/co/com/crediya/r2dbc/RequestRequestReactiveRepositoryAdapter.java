@@ -1,18 +1,20 @@
 package co.com.crediya.r2dbc;
 
 import co.com.crediya.model.solicitud.Request;
+import co.com.crediya.model.solicitud.enums.StatusName;
 import co.com.crediya.model.solicitud.gateways.RequestRepository;
 import co.com.crediya.model.solicitud.valueobjects.*;
 import co.com.crediya.r2dbc.entity.RequestEntity;
-import co.com.crediya.r2dbc.entity.StatusEntity;
 import co.com.crediya.r2dbc.helper.RequestReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,9 +41,13 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
     @Override
     @Transactional()
     public Mono<Request> updateStatus(UUID id, UUID status) {
-        return Mono.just(id)
-                .flatMap(this::findRequestById)
-                .map(this::toEntity)
+        return repository.findById(id)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("La solicitud " + id + " no existe")))
+                .map(entity -> {
+                    entity.setStatusId(status);
+                    entity.setLastUpdateDate(OffsetDateTime.now().toLocalDateTime());
+                    return entity;
+                })
                 .flatMap(repository::save)
                 .map(this::toDomain);
     }
@@ -74,32 +80,75 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
                 });
     }
 
+    @Override
+    public Mono<PagedResponse<Request>> listPending(int page, int size, SortSpec sort) {
+        UUID pendingId = StatusName.PENDING_TO_CHECK.getId();
+        long limit = size;
+        long offset = (long) page * size;
+
+        Sort springSort = toSpringSort(sort);
+
+        Mono<List<Request>> content = repository
+                .findPageByStatusId(pendingId, limit, offset, springSort)
+                .map(this::toDomain)
+                .collectList();
+
+        Mono<Long> total = repository.countByStatusId(pendingId);
+
+        return Mono.zip(content, total)
+                .map(t -> PagedResponse.of(t.getT1(), page, size, t.getT2()));
+    }
+
+    @Override
+    public Flux<Request> findPageByStatusId(UUID statusId, long limit, long offset, SortSpec sort) {
+        Sort springSort = toSpringSort(sort);
+        return repository.findPageByStatusId(statusId, limit, offset, springSort)
+                .map(this::toDomain);
+    }
+
+    @Override
+    public Mono<Long> countByStatusId(UUID statusId) {
+        return repository.countByStatusId(statusId);
+    }
+
+    private Sort toSpringSort(SortSpec sortSpec) {
+        if (sortSpec == null || sortSpec.property() == null || sortSpec.property().isBlank()) {
+            return Sort.unsorted();
+        }
+        Sort.Direction dir = (sortSpec.direction() == SortSpec.Direction.DESC)
+                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, sortSpec.property());
+    }
 
     public RequestEntity toEntity(Request request) {
         return RequestEntity.builder()
                 .id(request.getId() != null ? request.getId() : null)
-                .documentNumber(request.getDocumentNumber().document())
+                .name(request.getName().fullName())
+                .document(request.getDocumentNumber().document())
                 .email(request.getEmail().value())
                 .requestedAmount(new BigDecimal(String.valueOf(request.getRequestedAmount().amount())))
-                .loanTerm(request.getLoanTerm().asString())
+                .loanTerm(request.getLoanTerm().months())
                 .loanTypeId(request.getLoanTypeId())
                 .statusId(request.getStatusId())
                 .requestDate(request.getRequestDate())
                 .lastUpdateDate(request.getLastUpdateDate())
+                .userId(request.getUserId().userId())
                 .build();
     }
 
     public Request toDomain(RequestEntity entity) {
         return Request.builder()
                 .id(entity.getId())
-                .documentNumber(new Identification(entity.getDocumentNumber()))
+                .name(new Name(entity.getName(),""))
+                .documentNumber(new Identification(entity.getDocument()))
                 .email(new Email(entity.getEmail()))
                 .requestedAmount(new Amount(entity.getRequestedAmount()))
-                .loanTerm(new LoanTerm(Integer.parseInt(entity.getLoanTerm())))
+                .loanTerm(new LoanTerm(entity.getLoanTerm()))
                 .loanTypeId(entity.getLoanTypeId())
                 .statusId(entity.getStatusId())
                 .requestDate(entity.getRequestDate())
                 .lastUpdateDate(entity.getLastUpdateDate())
+                .userId(new UserId(entity.getUserId()))
                 .build();
     }
 }

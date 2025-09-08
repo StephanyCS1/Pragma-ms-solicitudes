@@ -44,6 +44,6 @@ public class LoanTypeReactiveRepositoryAdapter extends RequestReactiveAdapterOpe
 
     @Override
     public Mono<Boolean> isAutomaticValidation(UUID id) {
-        return repository.findById(id).map(LoanTypeEntity::isAutoValidation);
+        return repository.findById(id).map(LoanTypeEntity::isAutomaticValidation);
     }
 }

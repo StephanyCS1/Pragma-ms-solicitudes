@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.UUID;
 
-@Table(name = "statusEntity")
+@Table(name = "status")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

@@ -2,10 +2,12 @@ package co.com.crediya.model.solicitud.valueobjects.pojo;
 
 
 public record UserResponse(
-        String id,
+        String uid,
         String name,
         String lastName,
         String email,
-        Double baseSalary
+        Double baseSalary,
+        String identification,
+        String rol
 ) {
 }

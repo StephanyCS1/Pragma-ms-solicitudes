@@ -11,6 +11,9 @@ dependencies {
     testImplementation 'com.tngtech.archunit:archunit:1.4.1'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    implementation "io.netty:netty-resolver-dns-native-macos:4.1.123.Final:osx-aarch_64"
+
 }
 
 tasks.register('explodedJar', Copy) {

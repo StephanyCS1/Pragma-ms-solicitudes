@@ -20,6 +20,7 @@ import java.util.UUID;
 public class Request {
 
     private UUID id;
+    private Name name;
     private Identification documentNumber;
     private Email email;
     private Amount requestedAmount;
@@ -28,18 +29,21 @@ public class Request {
     private UUID statusId;
     private LocalDateTime requestDate;
     private LocalDateTime lastUpdateDate;
-
+    private UserId userId;
 
     public static Request create(
+            Name name,
             String documentNumber,
             String email,
             String requestedAmount,
             Integer loanTermMonths,
             UUID loanTypeId,
-            UUID initialStatusId) {
+            UUID initialStatusId,
+            UserId userId) {
 
         return new Request(
                 null,
+                name,
                 new Identification(documentNumber),
                 new Email(email),
                 new Amount(new BigDecimal(requestedAmount)),
@@ -47,7 +51,8 @@ public class Request {
                 loanTypeId,
                 initialStatusId,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                userId
         );
     }
 }

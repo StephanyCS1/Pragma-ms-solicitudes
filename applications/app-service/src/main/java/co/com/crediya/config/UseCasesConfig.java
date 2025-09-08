@@ -7,6 +7,7 @@ import co.com.crediya.model.solicitud.gateways.UserValidationService;
 import co.com.crediya.usecase.loanType.GetLoanTypeQueryUseCase;
 import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
 import co.com.crediya.usecase.request.getallrequests.GetRequestQueryUseCase;
+import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
 import co.com.crediya.usecase.status.GetAllStatusesQueryUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,12 +15,19 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class UseCasesConfig {
 
+
     @Bean
     public CreateRequestUseCase createRequestUseCase(
             RequestRepository requestRepository,
             GetLoanTypeQueryUseCase getLoanTypeQueryUseCase,
-            UserValidationService userValidationService) {
+            UserValidationService userValidationService
+    ) {
         return new CreateRequestUseCase(requestRepository, getLoanTypeQueryUseCase, userValidationService);
+    }
+
+    @Bean
+    public ListPendingRequestsUseCase listPendingRequestsUseCase(RequestRepository requestRepository){
+        return new ListPendingRequestsUseCase(requestRepository);
     }
 
     @Bean

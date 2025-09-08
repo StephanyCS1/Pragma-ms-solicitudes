@@ -7,11 +7,14 @@ import co.com.crediya.model.solicitud.exceptions.DomainValidationException;
 import co.com.crediya.model.solicitud.gateways.LoanTypeRepository;
 import co.com.crediya.model.solicitud.gateways.RequestRepository;
 import co.com.crediya.model.solicitud.gateways.StatusRepository;
+import co.com.crediya.model.solicitud.valueobjects.PagedResponse;
 import co.com.crediya.model.solicitud.valueobjects.RequestDetailResponse;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.awt.print.Pageable;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -25,7 +28,7 @@ public class GetRequestQueryUseCase {
         return requestRepository.findAllRequests();
     }
 
-    public Mono<RequestDetailResponse> getById(UUID id){
+    public Mono<RequestDetailResponse> getById(UUID id) {
         return requestRepository.findRequestById(id)
                 .switchIfEmpty(Mono.error(new DomainValidationException("Solicitud no encontrada")))
                 .flatMap(request ->

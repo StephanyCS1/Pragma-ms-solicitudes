@@ -9,39 +9,41 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Table(name = "requestEntity")
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
+@Table("requests")
+@Getter @Setter
+@Builder @NoArgsConstructor @AllArgsConstructor
 public class RequestEntity {
 
     @Id
     private UUID id;
 
+    @Column("name")
+    private String name;
+
     @Column("document")
-    private String documentNumber;
+    private String document;
 
     @Column("email")
     private String email;
 
-    @Column("requestedAmount")
+    @Column("requested_amount")
     private BigDecimal requestedAmount;
 
-    @Column("loanTerm")
-    private String loanTerm;
+    @Column("loan_term")
+    private Integer loanTerm;
 
-    @Column("loanTypeId")
+    @Column("loan_type_id")
     private UUID loanTypeId;
 
-    @Column("statusId")
+    @Column("status_id")
     private UUID statusId;
 
-    @Column("requestDate")
+    @Column("request_date")
     private LocalDateTime requestDate;
 
-    @Column("lastUpdateDate")
+    @Column("last_update_date")
     private LocalDateTime lastUpdateDate;
 
+    @Column("user_id")
+    private UUID userId;
 }

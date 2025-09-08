@@ -5,9 +5,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
-@Table(name = "loanTypeEntity")
+@Table(name = "loan_type_entity")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -16,21 +17,21 @@ import java.util.UUID;
 public class LoanTypeEntity {
 
     @Id
+    @Column("id")
     private UUID id;
 
     @Column("name")
     private String name;
 
-    @Column("minimumAmount")
-    private String minimumAmount;
+    @Column("minimum_amount")
+    private BigDecimal minimumAmount;
 
-    @Column("maximumAmount")
-    private String maximumAmount;
+    @Column("maximum_amount")
+    private BigDecimal maximumAmount;
 
-    @Column("interestRate")
-    private String interestRate;
+    @Column("interest_rate")
+    private BigDecimal interestRate;
 
-    @Column("autoValidation")
-    private boolean autoValidation;
-
+    @Column("automatic_validation")
+    private boolean automaticValidation;
 }

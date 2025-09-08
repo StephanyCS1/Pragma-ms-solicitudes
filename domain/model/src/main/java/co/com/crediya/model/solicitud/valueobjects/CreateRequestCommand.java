@@ -12,6 +12,7 @@ public record CreateRequestCommand(
         String requestedAmount,
         Integer loanTermMonths,
         UUID loanTypeId,
-        String monthlyIncome
+        String monthlyIncome,
+        UUID userId
 
 ) {}

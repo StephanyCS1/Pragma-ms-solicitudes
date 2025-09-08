@@ -38,4 +38,9 @@ public enum StatusName {
     public static Optional<StatusName> fromName(String name) {
         return Optional.ofNullable(BY_NAME.get(name));
     }
+
+    @Override
+    public String toString() {
+        return String.valueOf(id);
+    }
 }

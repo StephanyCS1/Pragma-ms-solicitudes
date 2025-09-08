@@ -47,6 +47,17 @@ group-configs:
   - group: 'solicitudes'
     display-name: 'API de Solicitudes'
     paths-to-match: '/api/v1/solicitudes/**'
+external:
+  users:
+    base-url: http://localhost:9001
+    base-path: /api/v1/usuarios
+security:
+  jwt:
+    issuer: "crediya-auth"
+    audience: "crediya-services"
+    secret: "${JWT_SECRET}" # HS256
+    expiration-minutes: 3
+
 logging:
   level:
     co.com.crediya: DEBUG

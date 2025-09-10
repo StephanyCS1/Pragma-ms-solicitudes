@@ -4,13 +4,12 @@ import co.com.crediya.api.dto.NewRequest;
 import co.com.crediya.api.dto.RequestDto;
 import co.com.crediya.api.mapper.RequestMapper;
 import co.com.crediya.model.solicitud.Request;
-import co.com.crediya.model.solicitud.exceptions.UserNotFoundException;
-import co.com.crediya.model.solicitud.gateways.UserValidationService;
 import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import co.com.crediya.model.solicitud.valueobjects.PagedResponse;
+import co.com.crediya.model.solicitud.valueobjects.RequestSummary;
 import co.com.crediya.model.solicitud.valueobjects.SortSpec;
-import co.com.crediya.usecases.request.createrequest.CreateRequestUseCase;
-import co.com.crediya.usecases.request.getallrequests.ListPendingRequestsUseCase;
+import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
+import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,7 +37,6 @@ public class RequestController {
   private final CreateRequestUseCase createRequestUseCase;
   private final ListPendingRequestsUseCase listPendingRequestsUseCase;
   private final RequestMapper requestMapper;
-  private final UserValidationService userValidationService;
 
     @Tag(name = "Solicitudes de Crédito", description = "Gestión de solicitudes de crédito")
     @Operation(
@@ -200,7 +197,7 @@ public class RequestController {
         String identification = (String) claims.get("identification");
         UUID userId = UUID.fromString((String) claims.get("uid"));
         String name = (String) claims.get("name");
-        String lastname = (String) claims.get("lastname");
+        String lastname = (String) claims.get("lastName");
 
         log.info(userId.toString());
         log.info(tokenEmail);
@@ -221,22 +218,24 @@ public class RequestController {
         );
 
         log.info(normalized.toString());
-        return userValidationService.findByEmail(tokenEmail)
-                .switchIfEmpty(Mono.error(new UserNotFoundException("Usuario no encontrado con email: " + tokenEmail)))
-                .flatMap(user -> {
-                    log.debug("🛠️ Mapeando request a command para email: {}", normalized.email());
-                    var command = requestMapper.toCommand(normalized);
-                    log.debug("🚀 Ejecutando CreateRequestUseCase para usuario con email {}", user.email());
+        return Mono.just(normalized)
+                .doOnNext(req -> log.debug("📥 Payload procesado: {}", req))
+                .doOnNext(req -> log.info("🚀 Procesando creación de solicitud para usuario: {} ({})",
+                        tokenEmail, userId))
+                .flatMap(normalizedRequest -> {
+                    log.debug("🛠️ Mapeando solicitud a command para email: {}", normalizedRequest.email());
+                    var command = requestMapper.toCommand(normalizedRequest);
+                    log.debug("⚡ Ejecutando CreateRequestUseCase para usuario: {}", tokenEmail);
                     return createRequestUseCase.create(command);
                 })
-                .doOnNext(created -> log.info("✅ Solicitud generada con id={} identificación={}",
-                        created.getId(), created.getDocumentNumber()))
+                .doOnNext(created -> log.info("✅ Solicitud creada exitosamente - ID: {} | Usuario: {} | Identificación: {}",
+                        created.getId(), tokenEmail, created.getDocumentNumber()))
+                .doOnError(error -> log.error("❌ Error creando solicitud para usuario {}: {}",
+                        tokenEmail, error.getMessage()))
                 .map(created -> ResponseEntity.ok(new GeneralResponse<>(200, created, null)));
     }
 
 
-    @GetMapping("/requests/pending")
-    @PreAuthorize("hasAnyRole('ASESOR')")
     @Operation(
             summary = "Listar solicitudes pendientes",
             description = "Devuelve una lista paginada de solicitudes con estado pendiente.",
@@ -256,7 +255,9 @@ public class RequestController {
                     )
             }
     )
-    public Mono<ResponseEntity<GeneralResponse<PagedResponse<Request>>>> listPending(
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ASESOR')")
+    public Mono<ResponseEntity<GeneralResponse<PagedResponse<RequestSummary>>>> listPending(
             @Parameter(description = "Número de página (inicia en 0)", example = "0")
             @RequestParam(name = "page", defaultValue = "0") int page,
 
@@ -264,12 +265,21 @@ public class RequestController {
             @RequestParam(name = "size", defaultValue = "20") int size,
 
             @Parameter(description = "Dirección de ordenamiento (ASC o DESC)", example = "DESC")
-            @RequestParam(name = "direction", defaultValue = "DESC") String direction
+            @RequestParam(name = "direction", defaultValue = "DESC") String direction,
+
+            @Parameter(description = "Campo por el que ordenar", example = "created_at")
+            @RequestParam(name = "sort", defaultValue = "created_at") String sortField,
+
+            @Parameter(description = "Tipo de filtro: email, identification, name", example = "email")
+            @RequestParam(name = "filterType", required = false) String filterType,
+
+            @Parameter(description = "Valor a buscar", example = "pepe@example.com")
+            @RequestParam(name = "filterValue", required = false) String filterValue
     ) {
-        var sort = new SortSpec("status_id",
+        var sort = new SortSpec(sortField,
                 "DESC".equalsIgnoreCase(direction) ? SortSpec.Direction.DESC : SortSpec.Direction.ASC);
 
-        return listPendingRequestsUseCase.execute(page, size, sort)
+        return listPendingRequestsUseCase.execute(page, size, filterType, filterValue, sort)
                 .map(resp -> ResponseEntity.ok(new GeneralResponse<>(200, resp, null)));
     }
 

@@ -82,45 +82,69 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
     }
 
     @Override
-    public Mono<PagedResponse<Request>> listPending(int page, int size, SortSpec sortSpec) {
-        UUID pendingId = StatusName.PENDING_TO_CHECK.getId();
+    public Flux<Request> findPageByStatusesWithFilter(
+            List<UUID> statuses, long limit, long offset,
+            SortSpec sort, String filterType, String filterValue) {
 
-        Sort springSort = toSpringSort(sortSpec == null
-                ? new SortSpec("requestDate", SortSpec.Direction.DESC)
-                : sortSpec);
-
-        Pageable pb = PageRequest.of(page, size, springSort);
-
-        Mono<List<Request>> content = repository.findByStatusId(pendingId, pb)
-                .map(this::toDomain)
-                .collectList();
-
-        Mono<Long> total = repository.countByStatusId(pendingId);
-
-        return Mono.zip(content, total)
-                .map(t -> PagedResponse.of(t.getT1(), page, size, t.getT2()));
-    }
-
-    @Override
-    public Flux<Request> findPageByStatusId(UUID statusId, long limit, long offset, SortSpec sort) {
         if (limit <= 0) {
             return Flux.error(new IllegalArgumentException("limit must be > 0"));
         }
-
         int size = Math.toIntExact(limit);
         int page = (int) (offset / limit);
 
-        Sort springSort = toSpringSort(sort);
+        Sort springSort = toSpringSort(sort == null
+                ? new SortSpec("requestDate", SortSpec.Direction.DESC)
+                : sort);
+
         Pageable pb = PageRequest.of(page, size, springSort);
 
-        return repository.findByStatusId(statusId, pb)
-                .map(this::toDomain);
+        Flux<RequestEntity> flux;
+        if (filterType == null || filterValue == null || filterValue.isBlank()) {
+            flux = repository.findByStatusIdIn(statuses, pb);
+        } else {
+            switch (filterType.toLowerCase()) {
+                case "email" -> flux = repository.findByStatusIdInAndEmailContainingIgnoreCase(
+                        statuses, filterValue.trim(), pb);
+                case "name" -> flux = repository.findByStatusIdInAndNameContainingIgnoreCase(
+                        statuses, filterValue.trim(), pb);
+                case "amount_min" -> {
+                    BigDecimal min = new BigDecimal(filterValue.trim());
+                    flux = repository.findByStatusIdInAndRequestedAmountGreaterThanEqual(statuses, min, pb);
+                }
+                case "amount_max" -> {
+                    BigDecimal max = new BigDecimal(filterValue.trim());
+                    flux = repository.findByStatusIdInAndRequestedAmountLessThanEqual(statuses, max, pb);
+                }
+                default -> flux = repository.findByStatusId(StatusName.fromName("PENDING_TO_CHECK").get().getId(), pb);
+            }
+        }
+
+        return flux.map(this::toDomain);
     }
 
     @Override
-    public Mono<Long> countByStatusId(UUID statusId) {
-        return repository.countByStatusId(statusId);
+    public Mono<Long> countByStatusesWithFilter(
+            List<UUID> statuses, String filterType, String filterValue) {
+
+        if (filterType == null || filterValue == null || filterValue.isBlank()) {
+            return repository.countByStatusIdIn(statuses);
+        }
+
+        return switch (filterType.toLowerCase()) {
+            case "email" -> repository.countByStatusIdInAndEmailContainingIgnoreCase(statuses, filterValue.trim());
+            case "name"  -> repository.countByStatusIdInAndNameContainingIgnoreCase(statuses, filterValue.trim());
+            case "amount_min" -> {
+                BigDecimal min = new BigDecimal(filterValue.trim());
+                yield repository.countByStatusIdInAndRequestedAmountGreaterThanEqual(statuses, min);
+            }
+            case "amount_max" -> {
+                BigDecimal max = new BigDecimal(filterValue.trim());
+                yield repository.countByStatusIdInAndRequestedAmountLessThanEqual(statuses, max);
+            }
+            default -> repository.countByStatusIdIn(statuses);
+        };
     }
+
 
 
     private Sort toSpringSort(SortSpec sortSpec) {

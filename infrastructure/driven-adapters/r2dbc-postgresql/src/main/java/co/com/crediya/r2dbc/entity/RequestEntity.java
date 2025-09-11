@@ -1,5 +1,6 @@
 package co.com.crediya.r2dbc.entity;
 
+import jakarta.persistence.GeneratedValue;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -9,13 +10,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Table("requests")
+@Table("request_entity")
 @Getter @Setter
 @Builder @NoArgsConstructor @AllArgsConstructor
 public class RequestEntity {
 
     @Id
-    private UUID id;
+    @Column("id")
+    @GeneratedValue
+    private String id;
 
     @Column("name")
     private String name;
@@ -38,11 +41,11 @@ public class RequestEntity {
     @Column("status_id")
     private UUID statusId;
 
-    @Column("request_date")
-    private LocalDateTime requestDate;
+    @Column("created_at")
+    private LocalDateTime created_at;
 
-    @Column("last_update_date")
-    private LocalDateTime lastUpdateDate;
+    @Column("updated_at")
+    private LocalDateTime updated_at;
 
     @Column("user_id")
     private UUID userId;

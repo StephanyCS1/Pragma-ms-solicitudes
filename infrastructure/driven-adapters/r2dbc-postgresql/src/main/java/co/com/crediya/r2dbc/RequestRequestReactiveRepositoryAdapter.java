@@ -7,6 +7,7 @@ import co.com.crediya.model.solicitud.gateways.RequestRepository;
 import co.com.crediya.model.solicitud.valueobjects.*;
 import co.com.crediya.r2dbc.entity.RequestEntity;
 import co.com.crediya.r2dbc.helper.RequestReactiveAdapterOperations;
+import lombok.extern.slf4j.Slf4j;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Repository
 public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdapterOperations<
         Request,
@@ -37,8 +39,8 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
     @Override
     @Transactional()
     public Mono<Request> save(Request request) {
-        RequestEntity requestEntity = toEntity(request);
-        return repository.save(requestEntity).map(this::toDomain);
+        var entity = toEntity(request);
+        return repository.save(entity).map(this::toDomain);
     }
 
     @Override
@@ -48,7 +50,7 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("La solicitud " + id + " no existe")))
                 .map(entity -> {
                     entity.setStatusId(status);
-                    entity.setLastUpdateDate(OffsetDateTime.now().toLocalDateTime());
+                    entity.setUpdated_at(OffsetDateTime.now().toLocalDateTime());
                     return entity;
                 })
                 .flatMap(repository::save)
@@ -147,18 +149,13 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
 
 
 
-    private Sort toSpringSort(SortSpec sortSpec) {
-        if (sortSpec == null || sortSpec.property() == null || sortSpec.property().isBlank()) {
-            return Sort.unsorted();
-        }
-        Sort.Direction dir = (sortSpec.direction() == SortSpec.Direction.DESC)
-                ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return Sort.by(dir, sortSpec.property());
+    private Sort toSpringSort(SortSpec spec) {
+        var dir = spec.direction() == SortSpec.Direction.DESC ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, spec.property());
     }
 
     public RequestEntity toEntity(Request request) {
         return RequestEntity.builder()
-                .id(request.getId() != null ? request.getId() : null)
                 .name(request.getName().fullName())
                 .document(request.getDocumentNumber().document())
                 .email(request.getEmail().value())
@@ -166,15 +163,13 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
                 .loanTerm(request.getLoanTerm().months())
                 .loanTypeId(request.getLoanTypeId())
                 .statusId(request.getStatusId())
-                .requestDate(request.getRequestDate())
-                .lastUpdateDate(request.getLastUpdateDate())
                 .userId(request.getUserId().userId())
                 .build();
     }
 
     public Request toDomain(RequestEntity entity) {
         return Request.builder()
-                .id(entity.getId())
+                .id(UUID.fromString(entity.getId()))
                 .name(new Name(entity.getName(),""))
                 .documentNumber(new Identification(entity.getDocument()))
                 .email(new Email(entity.getEmail()))
@@ -182,8 +177,8 @@ public class RequestRequestReactiveRepositoryAdapter extends RequestReactiveAdap
                 .loanTerm(new LoanTerm(entity.getLoanTerm()))
                 .loanTypeId(entity.getLoanTypeId())
                 .statusId(entity.getStatusId())
-                .requestDate(entity.getRequestDate())
-                .lastUpdateDate(entity.getLastUpdateDate())
+                .requestDate(entity.getCreated_at())
+                .lastUpdateDate(entity.getUpdated_at())
                 .userId(new UserId(entity.getUserId()))
                 .build();
     }

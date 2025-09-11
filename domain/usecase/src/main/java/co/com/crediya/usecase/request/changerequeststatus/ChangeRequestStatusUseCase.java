@@ -13,7 +13,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChangeRequestStatusUseCase {
 
-    private RequestRepository requestRepository;
+    private final RequestRepository requestRepository;
 
     public Mono<Request> update(UUID requestId, String newStatusName) {
         Optional<StatusName> statusName = StatusName.fromName(newStatusName);

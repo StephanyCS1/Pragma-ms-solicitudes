@@ -3,29 +3,48 @@ package co.com.crediya.usecase.loantype;
 import co.com.crediya.model.solicitud.LoanType;
 import co.com.crediya.model.solicitud.gateways.LoanTypeRepository;
 import co.com.crediya.usecase.request.GetLoanTypeQueryUseCase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import java.util.UUID;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+import java.util.UUID;
+
+import static org.mockito.Mockito.*;
+
 class GetLoanTypeQueryUseCaseTest {
-    @Mock
-    LoanTypeRepository loanTypeRepository;
-    @InjectMocks
+
+    LoanTypeRepository repository;
     GetLoanTypeQueryUseCase useCase;
 
+    @BeforeEach
+    void setUp() {
+        repository = mock(LoanTypeRepository.class);
+        useCase = new GetLoanTypeQueryUseCase(repository);
+    }
+
     @Test
-    void shouldReturnLoanType() {
-        UUID id = UUID.randomUUID();
-        when(loanTypeRepository.findLoanTypeById(id)).thenReturn(Mono.just(LoanType.builder().id(id).name("Libre").build()));
-        StepVerifier.create(useCase.getById(id))
-                .expectNextMatches(lt -> lt.getId().equals(id) && lt.getName().equals("Libre"))
+    void getByName_delegatesToRepository() {
+        LoanType lt = mock(LoanType.class);
+        when(repository.findLoanTypeByName("LIBRE_INVERSION")).thenReturn(Mono.just(lt));
+
+        StepVerifier.create(useCase.getByName("LIBRE_INVERSION"))
+                .expectNext(lt)
                 .verifyComplete();
+
+        verify(repository).findLoanTypeByName("LIBRE_INVERSION");
+    }
+
+    @Test
+    void getById_delegatesToRepository() {
+        UUID id = UUID.randomUUID();
+        LoanType lt = mock(LoanType.class);
+        when(repository.findLoanTypeById(id)).thenReturn(Mono.just(lt));
+
+        StepVerifier.create(useCase.getById(id))
+                .expectNext(lt)
+                .verifyComplete();
+
+        verify(repository).findLoanTypeById(id);
     }
 }

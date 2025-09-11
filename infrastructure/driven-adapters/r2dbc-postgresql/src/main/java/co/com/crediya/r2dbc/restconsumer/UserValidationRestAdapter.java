@@ -6,6 +6,7 @@ import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import co.com.crediya.model.solicitud.valueobjects.pojo.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,9 +21,10 @@ public class UserValidationRestAdapter implements UserValidationService {
     private String usersPath;
 
     @Override
-    public Mono<UserResponse> findByEmail(String email) {
+    public Mono<UserResponse> findByEmail(String email, String token) {
         return userServiceClient.get()
                 .uri(uri -> uri.path(usersPath).queryParam("email", email).build())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .exchangeToMono(resp -> {
                     var status = resp.statusCode();
                     if (status.is2xxSuccessful()) {

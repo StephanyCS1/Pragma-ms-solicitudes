@@ -21,7 +21,7 @@ public class CreateRequestUseCase {
         if (command.userId() == null) {
             return Mono.error(new DomainValidationException("El userId es requerido"));
         }
-
+        System.out.println("Use Case");
         return Mono.just(command)
                 .flatMap(u -> getLoanTypeQueryUseCase.getById(command.loanTypeId()))
                 .switchIfEmpty(Mono.error(new DomainValidationException("El tipo de crédito es incorrecto")))

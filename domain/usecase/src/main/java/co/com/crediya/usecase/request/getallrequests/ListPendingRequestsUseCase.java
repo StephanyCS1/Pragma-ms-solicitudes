@@ -39,29 +39,34 @@ public class ListPendingRequestsUseCase {
     public Mono<PagedResponse<RequestSummary>> execute(
             int page, int size,
             String filterType, String filterValue,
-            SortSpec sort) {
+            SortSpec sort,
+            String token) {
 
         if (page < 0 || size <= 0) {
             return Mono.error(new DomainValidationException("Parámetros de paginación inválidos"));
         }
 
+        String effectiveFilterType = filterType != null ? filterType : "";
+        String effectiveFilterValue = filterValue != null ? filterValue : "";
+
+        System.out.println(token);
         long limit = size;
         long offset = (long) page * size;
 
         var statuses = List.of(ST_PENDING, ST_REJECTED, ST_MANUAL_REVIEW);
 
         Mono<List<RequestSummary>> content = requestRepository
-                .findPageByStatusesWithFilter(statuses, limit, offset, sort, filterType, filterValue) // <-- método sugerido
-                .flatMap(this::enrichRequestWithDetails)
+                .findPageByStatusesWithFilter(statuses, limit, offset, sort, effectiveFilterType, effectiveFilterValue)
+                .flatMap(req -> enrichRequestWithDetails(req, token))
                 .collectList();
 
-        Mono<Long> total = requestRepository.countByStatusesWithFilter(statuses, filterType, filterValue); // <-- método sugerido
+        Mono<Long> total = requestRepository.countByStatusesWithFilter(statuses, effectiveFilterType, effectiveFilterValue);
 
         return Mono.zip(content, total)
                 .map(t -> PagedResponse.of(t.getT1(), page, size, t.getT2()));
     }
 
-    private Mono<RequestSummary> enrichRequestWithDetails(Request request) {
+    private Mono<RequestSummary> enrichRequestWithDetails(Request request, String token) {
         var loanData = loanTypeRepository.findLoanTypeById(request.getLoanTypeId())
                 .switchIfEmpty(Mono.error(new DomainValidationException("Tipo de crédito no encontrado")))
                 .map(lt -> Tuples.of(
@@ -69,7 +74,7 @@ public class ListPendingRequestsUseCase {
                         Optional.ofNullable(lt.getInterestRate()).orElse("0")
                 ));
 
-        var baseSalary = userValidationService.findByEmail(request.getEmail().value())
+        var baseSalary = userValidationService.findByEmail(request.getEmail().value(), token)
                 .switchIfEmpty(Mono.error(new DomainValidationException("Usuario no encontrado")))
                 .map(co.com.crediya.model.solicitud.valueobjects.pojo.UserResponse::baseSalary)
                 .map(d -> d == null ? BigDecimal.ZERO : BigDecimal.valueOf(d))

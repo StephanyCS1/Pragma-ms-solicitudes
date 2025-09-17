@@ -1,8 +1,8 @@
 package co.com.crediya.api;
 
-import co.com.crediya.api.dto.NewRequest;
 import co.com.crediya.api.dto.RequestDto;
 import co.com.crediya.api.mapper.RequestMapper;
+import co.com.crediya.api.security.JwtHandler;
 import co.com.crediya.model.solicitud.Request;
 import co.com.crediya.model.solicitud.exceptions.DomainValidationException;
 import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
@@ -28,11 +28,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/solicitud")
@@ -43,6 +39,7 @@ public class RequestController {
     private final CreateRequestUseCase createRequestUseCase;
     private final ListPendingRequestsUseCase listPendingRequestsUseCase;
     private final RequestMapper requestMapper;
+    private final JwtHandler jwtHandler;
 
     @Tag(name = "Solicitudes de Crédito", description = "Gestión de solicitudes de crédito")
     @Operation(
@@ -189,55 +186,15 @@ public class RequestController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ASESOR','USER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ASESOR','ROLE_USER')")
     public Mono<ResponseEntity<GeneralResponse<Request>>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Datos de la nueva solicitud de crédito",
                     required = true,
                     content = @Content(schema = @Schema(implementation = RequestDto.class))
-            ) @RequestBody RequestDto request, Authentication authentication) {
-        log.info("📩 Creando solicitud de crédito");
-        @SuppressWarnings("unchecked")
-        var claims = (Map<String, Object>) authentication.getDetails();
-        String tokenEmail = (String) claims.get("email");
-        String identification = (String) claims.get("identification");
-        UUID userId = UUID.fromString((String) claims.get("uid"));
-        String name = (String) claims.get("name");
-        String lastname = (String) claims.get("lastName");
-
-        log.info(userId.toString());
-        log.info(tokenEmail);
-        log.info(identification);
-        log.info(name);
-        log.info(lastname);
-        var normalized = new NewRequest(
-                identification,
-                name,
-                lastname,
-                tokenEmail,
-                request.phoneNumber(),
-                request.requestedAmount(),
-                request.loanTermMonths(),
-                request.loanTypeId(),
-                request.monthlyIncome(),
-                userId
-        );
-
-        log.info(normalized.toString());
-        return Mono.just(normalized)
-                .doOnNext(req -> log.debug("📥 Payload procesado: {}", req))
-                .doOnNext(req -> log.info("🚀 Procesando creación de solicitud para usuario: {} ({})",
-                        tokenEmail, userId))
-                .flatMap(normalizedRequest -> {
-                    log.debug("🛠️ Mapeando solicitud a command para email: {}", normalizedRequest.email());
-                    var command = requestMapper.toCommand(normalizedRequest);
-                    log.debug("⚡ Ejecutando CreateRequestUseCase para usuario: {}", tokenEmail);
-                    return createRequestUseCase.create(command);
-                })
-                .doOnNext(created -> log.info("✅ Solicitud creada exitosamente - ID: {} | Usuario: {} | Identificación: {}",
-                        created.getId(), tokenEmail, created.getDocumentNumber()))
-                .doOnError(error -> log.error("❌ Error creando solicitud para usuario {}: {}",
-                        tokenEmail, error.getMessage()))
+            ) @RequestBody RequestDto request, @AuthenticationPrincipal Jwt jwt) {
+        var normalized = jwtHandler.toNewRequest(request, jwt);
+        return createRequestUseCase.create(requestMapper.toCommand(normalized))
                 .map(created -> ResponseEntity.ok(new GeneralResponse<>(200, created, null)));
     }
 
@@ -262,7 +219,7 @@ public class RequestController {
             }
     )
     @GetMapping
-    @PreAuthorize("hasAnyRole('ASESOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ASESOR')")
     public Mono<ResponseEntity<GeneralResponse<PagedResponse<RequestSummary>>>> listPending(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
@@ -272,19 +229,9 @@ public class RequestController {
             @RequestParam(name = "filterValue", required = false) String filterValue,
             ServerHttpRequest request
     ) {
-        var sort = new SortSpec(
-                sortField,
-                "DESC".equalsIgnoreCase(direction) ? SortSpec.Direction.DESC : SortSpec.Direction.ASC
-        );
-        String bearer = null;
-        var auth = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (auth != null && auth.startsWith("Bearer ")) {
-            bearer = auth.substring(7);
-        }
-        if (bearer == null || bearer.isBlank()) {
-            return Mono.error(new DomainValidationException("Falta token de autorización"));
-        }        log.info(bearer);
-        return listPendingRequestsUseCase.execute(page, size, filterType, filterValue, sort, bearer)
+        String bearer = String.valueOf(jwtHandler.validateToken(request));
+
+        return listPendingRequestsUseCase.execute(page, size, filterType, filterValue, sortField, direction, bearer)
                 .map(resp -> ResponseEntity.ok(new GeneralResponse<>(200, resp, null)));
     }
 }

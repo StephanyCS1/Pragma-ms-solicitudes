@@ -39,13 +39,17 @@ public class ListPendingRequestsUseCase {
     public Mono<PagedResponse<RequestSummary>> execute(
             int page, int size,
             String filterType, String filterValue,
-            SortSpec sort,
+            String  sortField,
+            String direction,
             String token) {
 
         if (page < 0 || size <= 0) {
             return Mono.error(new DomainValidationException("Parámetros de paginación inválidos"));
         }
-
+        var sort = new SortSpec(
+                sortField,
+                "DESC".equalsIgnoreCase(direction) ? SortSpec.Direction.DESC : SortSpec.Direction.ASC
+        );
         String effectiveFilterType = filterType != null ? filterType : "";
         String effectiveFilterValue = filterValue != null ? filterValue : "";
 

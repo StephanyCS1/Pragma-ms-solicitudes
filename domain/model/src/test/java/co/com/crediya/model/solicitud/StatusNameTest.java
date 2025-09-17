@@ -18,7 +18,7 @@ class StatusNameTest {
         assertEquals(6, StatusName.values().length);
 
         assertNotNull(StatusName.INITITED);
-        assertNotNull(StatusName.PROCESSING);
+        assertNotNull(StatusName.MANUAL_REVIEW);
         assertNotNull(StatusName.PENDING_TO_CHECK);
         assertNotNull(StatusName.REJECTED);
         assertNotNull(StatusName.CANCEL_FOR_USER);
@@ -30,7 +30,7 @@ class StatusNameTest {
         assertEquals(UUID.fromString("90c6d49c-cae5-464f-8594-17ca3510e79b"),
                 StatusName.INITITED.getId());
         assertEquals(UUID.fromString("caae6c2c-14a6-4607-ba43-23d230ee901a"),
-                StatusName.PROCESSING.getId());
+                StatusName.MANUAL_REVIEW.getId());
         assertEquals(UUID.fromString("4f646f64-e460-43d1-9137-0201d4eb3743"),
                 StatusName.PENDING_TO_CHECK.getId());
         assertEquals(UUID.fromString("dd8e57c4-598d-4c34-abe0-618cfe8c48e6"),
@@ -82,7 +82,7 @@ class StatusNameTest {
 
     @Test
     void testToStringMethod() {
-        String result = StatusName.PROCESSING.toString();
+        String result = StatusName.MANUAL_REVIEW.toString();
         assertEquals("caae6c2c-14a6-4607-ba43-23d230ee901a", result);
     }
 

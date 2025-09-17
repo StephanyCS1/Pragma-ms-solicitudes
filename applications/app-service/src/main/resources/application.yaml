@@ -1,5 +1,5 @@
 server:
-  port: 9002
+  port: 8081
 spring:
   application:
     name: "ms-solicitudes"
@@ -9,12 +9,15 @@ spring:
     include: null
 adapters:
   r2dbc:
-    host: localhost
-    port: 5432
-    database: solicitudes
+    host: ${POSTGRES_HOST:db-postgres}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:solicitudes}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    # opcional si tu pool lo soporta:
     schema: public
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    ssl: false
+
   sql:
     init:
       mode: never
@@ -49,7 +52,7 @@ group-configs:
     paths-to-match: '/api/v1/solicitudes/**'
 external:
   users:
-    base-url: http://localhost:9001
+    base-url: http://ms-autenticacion:8080
     base-path: /api/v1/usuarios
 security:
   jwt:

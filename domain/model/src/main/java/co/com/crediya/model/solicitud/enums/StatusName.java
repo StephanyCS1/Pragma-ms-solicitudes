@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public enum StatusName {
 
     INITITED(UUID.fromString("90c6d49c-cae5-464f-8594-17ca3510e79b")),
-    PROCESSING(UUID.fromString("caae6c2c-14a6-4607-ba43-23d230ee901a")),
+    MANUAL_REVIEW(UUID.fromString("caae6c2c-14a6-4607-ba43-23d230ee901a")),
     PENDING_TO_CHECK(UUID.fromString("4f646f64-e460-43d1-9137-0201d4eb3743")),
     REJECTED(UUID.fromString("dd8e57c4-598d-4c34-abe0-618cfe8c48e6")),
     CANCEL_FOR_USER(UUID.fromString("28687783-cf20-40ef-8b63-37a855f2b930")),
@@ -39,6 +39,9 @@ public enum StatusName {
         return Optional.ofNullable(BY_NAME.get(name));
     }
 
+    public static Optional<String> getNameById(UUID id) {
+        return fromId(id).map(StatusName::name);
+    }
     @Override
     public String toString() {
         return String.valueOf(id);

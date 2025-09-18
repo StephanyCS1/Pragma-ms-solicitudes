@@ -52,8 +52,11 @@ group-configs:
     paths-to-match: '/api/v1/solicitudes/**'
 external:
   users:
-    base-url: http://ms-autenticacion:8080
-    base-path: /api/v1/usuarios
+    base-url: ${EXTERNAL_USERS_BASE_URL:http://ms-autenticacion:8080}
+    base-path: ${EXTERNAL_USERS_BASE_PATH:/api/v1/usuarios}
+  notification:
+    base-url: ${NOTIFICATION_BASE_URL:http://ms-awsprocess:8081}
+    base-path: ${NOTIFICATION_BASE_PATH:/api/v1/aws}
 security:
   jwt:
     issuer: "crediya-auth"
@@ -69,4 +72,5 @@ logging:
     org.springframework.data.r2dbc: DEBUG
     org.springframework.r2dbc.core: DEBUG
     org.springframework: INFO
-    reactor.netty.http.client: INFO
+    com.tu.paquete.config.WebClientConfig: DEBUG
+    reactor.netty.http.client: DEBUG

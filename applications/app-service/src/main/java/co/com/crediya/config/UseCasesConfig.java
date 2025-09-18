@@ -1,10 +1,8 @@
 package co.com.crediya.config;
 
-import co.com.crediya.model.solicitud.gateways.LoanTypeRepository;
-import co.com.crediya.model.solicitud.gateways.RequestRepository;
-import co.com.crediya.model.solicitud.gateways.StatusRepository;
-import co.com.crediya.model.solicitud.gateways.UserValidationService;
+import co.com.crediya.model.solicitud.gateways.*;
 import co.com.crediya.usecase.request.GetLoanTypeQueryUseCase;
+import co.com.crediya.usecase.request.changerequeststatus.ChangeRequestStatusUseCase;
 import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
 import co.com.crediya.usecase.request.getallrequests.GetRequestQueryUseCase;
 import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
@@ -47,5 +45,12 @@ public class UseCasesConfig {
     @Bean
     public GetAllStatusesQueryUseCase getAllStatusesQueryUseCase(StatusRepository statusRepository) {
         return new GetAllStatusesQueryUseCase(statusRepository);
+    }
+
+    @Bean
+    public ChangeRequestStatusUseCase changeRequestStatusUseCase(RequestRepository requestRepository,
+                                                                 SendNotification sendNotification,
+                                                                 UserValidationService userValidationService) {
+        return new ChangeRequestStatusUseCase(requestRepository, sendNotification, userValidationService);
     }
 }

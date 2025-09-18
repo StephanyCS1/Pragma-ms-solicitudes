@@ -1,6 +1,7 @@
 package co.com.crediya.api;
 
 import co.com.crediya.api.dto.RequestDto;
+import co.com.crediya.api.dto.UpdateDto;
 import co.com.crediya.api.mapper.RequestMapper;
 import co.com.crediya.api.security.JwtHandler;
 import co.com.crediya.model.solicitud.Request;
@@ -8,7 +9,7 @@ import co.com.crediya.model.solicitud.exceptions.DomainValidationException;
 import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import co.com.crediya.model.solicitud.valueobjects.PagedResponse;
 import co.com.crediya.model.solicitud.valueobjects.RequestSummary;
-import co.com.crediya.model.solicitud.valueobjects.SortSpec;
+import co.com.crediya.usecase.request.changerequeststatus.ChangeRequestStatusUseCase;
 import co.com.crediya.usecase.request.createrequest.CreateRequestUseCase;
 import co.com.crediya.usecase.request.getallrequests.ListPendingRequestsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +31,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.util.UUID;
+
 
 @RestController
 @RequestMapping("/api/v1/solicitud")
@@ -38,6 +42,7 @@ public class RequestController {
 
     private final CreateRequestUseCase createRequestUseCase;
     private final ListPendingRequestsUseCase listPendingRequestsUseCase;
+    private final ChangeRequestStatusUseCase changeRequestStatusUseCase;
     private final RequestMapper requestMapper;
     private final JwtHandler jwtHandler;
 
@@ -192,9 +197,12 @@ public class RequestController {
                     description = "Datos de la nueva solicitud de crédito",
                     required = true,
                     content = @Content(schema = @Schema(implementation = RequestDto.class))
-            ) @RequestBody RequestDto request, @AuthenticationPrincipal Jwt jwt) {
-        var normalized = jwtHandler.toNewRequest(request, jwt);
-        return createRequestUseCase.create(requestMapper.toCommand(normalized))
+            ) @RequestBody RequestDto request, ServerHttpRequest httpRequest) {
+        return jwtHandler.validateToken(httpRequest)
+                .flatMap(token -> {
+                    var normalized = jwtHandler.toNewRequest(request, token);
+                    return createRequestUseCase.create(requestMapper.toCommand(normalized));
+                })
                 .map(created -> ResponseEntity.ok(new GeneralResponse<>(200, created, null)));
     }
 
@@ -229,9 +237,36 @@ public class RequestController {
             @RequestParam(name = "filterValue", required = false) String filterValue,
             ServerHttpRequest request
     ) {
-        String bearer = String.valueOf(jwtHandler.validateToken(request));
-
-        return listPendingRequestsUseCase.execute(page, size, filterType, filterValue, sortField, direction, bearer)
+        return jwtHandler.validateToken(request)
+                .flatMap(bearer -> listPendingRequestsUseCase.execute(
+                        page, size, filterType, filterValue, sortField, direction, bearer))
                 .map(resp -> ResponseEntity.ok(new GeneralResponse<>(200, resp, null)));
+    }
+
+    @PutMapping
+    @PreAuthorize("hasAnyRole('ROLE_ASESOR')")
+    public Mono<ResponseEntity<GeneralResponse<Request>>> update(
+            @RequestBody @Valid UpdateDto updateDto,
+            ServerHttpRequest request) {
+
+        return jwtHandler.validateToken(request)
+                .flatMap(bearer -> changeRequestStatusUseCase.update(
+                        UUID.fromString(updateDto.requestId()),
+                        updateDto.newStatus(),
+                        bearer
+                ))
+                .map(updatedRequest -> ResponseEntity.ok(
+                        new GeneralResponse<>(200, updatedRequest, null)
+                ))
+                .onErrorResume(DomainValidationException.class, ex ->
+                        Mono.just(ResponseEntity.badRequest().body(
+                                new GeneralResponse<Request>(400, null, ex.getMessage())
+                        ))
+                )
+                .onErrorResume(Exception.class, ex ->
+                        Mono.just(ResponseEntity.internalServerError().body(
+                                new GeneralResponse<Request>(500, null, "Error interno del servidor")
+                        ))
+                );
     }
 }

@@ -5,6 +5,7 @@ import co.com.crediya.model.solicitud.gateways.UserValidationService;
 import co.com.crediya.model.solicitud.valueobjects.GeneralResponse;
 import co.com.crediya.model.solicitud.valueobjects.pojo.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -13,10 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Mono;
 
 @Component
-@RequiredArgsConstructor
 public class UserValidationRestAdapter implements UserValidationService {
 
     private final WebClient userServiceClient;
+
+    public UserValidationRestAdapter(@Qualifier("userServiceClient") WebClient userServiceClient) {
+        this.userServiceClient = userServiceClient;
+    }
+
     @Value("${external.users.base-path:/api/v1/usuarios}")
     private String usersPath;
 
